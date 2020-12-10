@@ -54,7 +54,7 @@ Apify.main(async () => {
 
     log.info('Starting the crawl.')
     await crawler.run()
-    const dataset = await Apify.openDataset(Datasets.AMAZON_PRODUCTS, { forceCloud: true })
+    const dataset = await Apify.openDataset(Datasets.AMAZON_PRODUCTS)
     const dataUrl = `https://api.apify.com/v2/datasets/${dataset.datasetId}/items?clean=true&format=html`
     log.info('Crawl finished. Calling Send Email Actor')
     await Apify.call('apify/send-mail', {

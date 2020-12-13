@@ -27,7 +27,7 @@ exports.handleMainPage = async ({ request, page }, requestQueue) => {
         }
         // Feed the requestQueue with each product detail page
         await requestQueue.addRequest(requestOptions)
-        break // <-- TODO remove this, use for debug
+
     }
     log.info(`Main Page Done, Enqueued ${productsAsin.length} products`)
 }

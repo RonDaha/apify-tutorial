@@ -4,10 +4,6 @@ exports.PageLabels = {
     OFFERS: 'offers',
 }
 
-exports.Datasets = {
-    AMAZON_PRODUCTS: 'amazon-products',
-}
-
 exports.Debugging = {
     TIME: 'ProcessTimeIndicator'
 }

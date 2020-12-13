@@ -4,7 +4,7 @@
 
 const Apify = require('apify')
 const { handleMainPage, handleProductDetailsPage, handleProductsOffersPage } = require('./routes')
-const { PageLabels, Datasets, Debugging } = require('./consts')
+const { PageLabels, Debugging } = require('./consts')
 const { generateRand } = require('./utils')
 const { utils } = Apify
 
@@ -17,14 +17,11 @@ Apify.main(async () => {
     const requestList = await Apify.openRequestList('search-product-url', [{ url: mainPageUrl }])
     const requestQueue = await Apify.openRequestQueue()
     let proxyConfiguration
-    let emailTo = 'roncho1794@gmail.com'
     // Use Proxies on the Apify platform only
     if (Apify.isAtHome()) {
-        emailTo = 'lukas@apify.com'
         proxyConfiguration = await Apify.createProxyConfiguration()
     }
 
-    Apify.isAtHome()
     const crawler = new Apify.PuppeteerCrawler({
         proxyConfiguration,
         requestList,
@@ -40,7 +37,6 @@ Apify.main(async () => {
             const { url, userData: { label } } = context.request
             log.info('Page opened.', { label, url })
             // Generate random number to wait. Try to be less detectable as bot
-            await utils.sleep(generateRand() * 1000)
             switch (label) {
                 case PageLabels.DETAILS:
                     return handleProductDetailsPage(context, requestQueue)
@@ -54,14 +50,21 @@ Apify.main(async () => {
 
     log.info('Starting the crawl.')
     await crawler.run()
-    const dataset = await Apify.openDataset(Datasets.AMAZON_PRODUCTS)
+    const dataset = await Apify.openDataset()
     const dataUrl = `https://api.apify.com/v2/datasets/${dataset.datasetId}/items?clean=true&format=html`
-    log.info('Crawl finished. Calling Send Email Actor')
-    await Apify.call('apify/send-mail', {
-        to: emailTo,
-        subject: 'This is for the Apify SDK exercise - Ron Dahan',
-        text: `Data results for - ${keyword}.\nDataset URL - ${dataUrl}`,
-    })
-    log.info('Email sent. Process is done')
+    log.info('Crawl finished.')
     console.timeEnd(Debugging.TIME)
+
+
+    /* Tutorial part 1 */
+    // let emailTo = 'roncho1794@gmail.com'
+    // if (Apify.isAtHome()) {
+    //     emailTo = 'lukas@apify.com'
+    // }
+    // await Apify.call('apify/send-mail', {
+    //     to: emailTo,
+    //     subject: 'This is for the Apify SDK exercise - Ron Dahan',
+    //     text: `Data results for - ${keyword}.\nDataset URL - ${dataUrl}`,
+    // })
+    // log.info('Email sent. Process is done')
 })

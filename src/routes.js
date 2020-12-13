@@ -1,6 +1,6 @@
 const Apify = require('apify')
 const { utils: { log } } = Apify
-const { PageLabels, Datasets } = require('./consts')
+const { PageLabels } = require('./consts')
 
 /*
  The main page function will be responsible to collect all the product's ASIN from the main page
@@ -26,8 +26,8 @@ exports.handleMainPage = async ({ request, page }, requestQueue) => {
             userData: { label: PageLabels.DETAILS, asin },
         }
         // Feed the requestQueue with each product detail page
-        const productRequest = new Apify.Request(requestOptions)
-        await requestQueue.addRequest(productRequest)
+        await requestQueue.addRequest(requestOptions)
+        break // <-- TODO remove this, use for debug
     }
     log.info(`Main Page Done, Enqueued ${productsAsin.length} products`)
 }
@@ -50,8 +50,7 @@ exports.handleProductDetailsPage = async ({ request, page }, requestQueue) => {
         userData: { label: PageLabels.OFFERS, asin: request.userData.asin, productData },
     }
     // Feed the requestQueue with each product offer page
-    const productOffersRequest = new Apify.Request(requestOptions)
-    await requestQueue.addRequest(productOffersRequest)
+    await requestQueue.addRequest(requestOptions)
     log.info(`Done to collect product - ${request.userData.asin}`)
 }
 
@@ -59,7 +58,6 @@ exports.handleProductDetailsPage = async ({ request, page }, requestQueue) => {
  Handled each product offer page to extract the relevant data
 */
 exports.handleProductsOffersPage = async ({ request, page }, keyword) => {
-
     const productOffers = await page.$$eval('.olpOffer', offers => {
         const offersData = []
         offers.forEach(offer => {
@@ -88,9 +86,10 @@ exports.handleProductsOffersPage = async ({ request, page }, keyword) => {
             ...request.userData.productData,
             ...offer,
             keyword,
+            asin: request.userData.asin,
             shippingPrice: 'Includes in price'
         }
     })
-    const dataset = await Apify.openDataset(Datasets.AMAZON_PRODUCTS)
+    const dataset = await Apify.openDataset()
     await dataset.pushData(finalData)
 }

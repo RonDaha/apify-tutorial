@@ -73,4 +73,77 @@
 - How does the apify push command work? Is it worth using, in your opinion?
     - The apify push command uploads our project to the Apify cloud and builds an actor from it. In my option in is a great tool and worth using. On development process it will be faster to test changes like that. If we think 'production' environment it will be smarter to manage it from git to make sure our actor will be updated only when the master branch will.     
 
+### Task 5
 
+- What is the relationship between actor and task?
+    - Tasks are a feature that allow you to save pre-configured inputs for actors. An actor can perform a certain job with specific configurations for this job.
+
+- What are the differences between default (unnamed) and named storage? Which one would you choose for everyday usage?
+    - The differences between the two is that unnamed storage will be automatically deleted in 7 days. If we have few actors that do different things I will choose the named storages for 	an easier UI experience when I am browsing in my storages. Just need to remember to delete the data when it won’t be relevant anymore.
+
+- What is the relationship between the Apify API and the Apify client? Are there any significant differences?
+    - The Apify API exposes an API to integrate with the Apify platform, The Apify client make the API calls with exponential backoff, meaning it will retry util 8 times if the API calls fails.
+
+- Is it possible to use a request queue for deduplication of product IDs? If yes, how would you do that?
+    - Each request on the request queue got to have uniqueKey property, so to avoid duplications we can just set the uniqueKey of the request to be the product’s id
+
+- What is data retention and how does it work for all types of storage (default and named)?
+    - Data retention is the time our data will be save on the API platform. Unnamed storages expire after 7 days unless otherwise specified. Named storages are retained indefinitely
+
+- How do you pass input when running an actor or task via the API?
+    - By passing a JSON object as the POST payload and setting the Content-Type: application/json HTTP header.
+
+
+### Task 6
+
+- Which proxies (proxy groups) can users access with the Apify Proxy trial? How long does this trial last?
+  -  The available proxies groups are - Google SERP proxy (up to 100 requests) and Datacenter proxies. The trial will last for 30 days.
+  
+- How can you prevent a problem that one of the hardcoded proxy groups that a user is using stops working (a problem with a provider)? What should be the best practices?
+  - IP address rotation, we should keep rotate the IP we use for the same site according to it's blocking patterns
+
+- Does it make sense to rotate proxies when you are logged in?
+  - No, the IP represent the location the user is making the requests from so if we logged in to a website we need to keep the same IP for all our requests during this time the user is logged in.
+
+- Construct a proxy URL that will select proxies only from the US (without specific groups)
+  - http://<proxyServerUsername,country-US>:<proxyServerPassword>@proxy.test.com:8000
+
+- What do you need to do to rotate proxies (one proxy usually has one IP)? How does this differ for Cheerio Scraper and Puppeteer Scraper?
+  - To rotate an IP address we need to change our IP by choosing new IP from the pool. we can use sessions to manage that, create a new one if we wish to make the request from a different IP address
+  - To a Puppeteer Scraper we will tread as a Browser – a different IP address is used for each browser, so we will keep the same proxy (IP address) for the lifetime for our browser instance.
+  - To a Cheerio Scraper we will tread as new HTTP request each time – a different IP address is used for each request.
+  
+- Try to set up the Apify Proxy (using any group or auto) in your browser. This is useful for testing how websites behave with proxies from specific countries (although most are from the US). You can try Switchy Omega extension but there are many more. Were you successful?
+  - I did try using this extension by using a free proxy server credentials. I visited a few websites i go to on a daily base
+  
+- Name a few different ways a website can prevent you from scraping it.
+  - Block your IP address.
+  - Website is analyzing your behavior
+  - Websites can check for the signals that are been sent with the request (such as headers)
+  - Track browser fingerprint
+
+- Do you know any software companies that develop anti-scraping solutions? Have you ever encountered them on a website?
+  - I actually never heard about specific company which develop anti-scraping solution and never encountered one of them. From a google search I read a little bit about Radware, ipqualityscore, 
+
+### Task 7
+
+- Actors have a Restart on error option in their Settings. Would you use this for your regular actors? Why? When would you use it, and when not?
+  - I will not use the Restart on error option for my regular actor since an error is something my program should be ready for. If there are unexpected or unhandled error I will not want my actor to restart, I will want to investigate the error and prepare my actor to handle it well next time. Therefor this is not something I will use by default for every actor. I can think of a case I will use it where I want to test some website’s limits, so I won’t be afraid to receive errors from HTTP requests or if I am trying to scrape data from elements that appear only on certain cases. And also for testing data persistence just like in this task  
+  
+- Migrations happen randomly, but by setting Restart on error and then throwing an error in the main process, you can force a similar situation. Observe what happens. What changes and what stays the same in a restarted actor run?
+  - I saw that a local variable that I used to test the persistent (simple counter) was started all over again from 0 since it was living during the lifetime of the container, hence when a new container created the counter value was 0 again.
+  I also notice that the requestQueue kept its data and continue where it left before the manual error i emitted. The default key-value store from the first run (before the restart) also kept the same. in that way i was able to persist the relevant data for this task without naming this key-value store.
+
+- Why don't you usually need to add any special code to handle migrations in normal crawling/scraping? Is there a component that essentially solves this problem for you?
+  - The persistState event is emitted every 60 seconds by default. This event notifies all the components of the SDK to persist their state. It will also be emitted along with the migrating event but with isMigrating flag set to true.
+  
+- How can you intercept the migration event? How much time do you need after this takes place and before the actor migrates?
+  - We can intercept by listen to the ‘migrating’ event which indicate the actor will migrate soon. Not sure regarding the amount of time I need before the migration take place, enough time to persist my relevant data.
+  
+- When would you persist data to a default key-value store and when would you use a named key-value store?
+  - I will persist data to a default key-value store in case the data is relevant for the specific operation I am doing (actor / task run for example) to maintain long-running actor's state. To avoid losing this data in case of a migration.
+    A named key-value will be use I case I want to save data for a long period of time, and also for easier tracking on the Apify platform UI
+
+- Elaborate if you can ensure this object will stay 100% accurate, which means it will reflect the data in the dataset. Is this possible? If so, how?
+  - Their are a kind of race condition when we try to log the key value data every 20 seconds, at the moment we are logging it there is maybe new record that being inserting at the moment. We could use the promise the `setValue` method return and save it 
+  in accessible variable within the setInterval function. Then we can just await for it to finish before getting the value we want to log. 

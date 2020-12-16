@@ -1,13 +1,10 @@
-/**
- *
- */
-
+/*
+ * Amazon Actor - responsible to scrape data from amazon by searching a certain keyword.
+ * */
 const Apify = require('apify')
 const { handleMainPage, handleProductDetailsPage, handleProductsOffersPage } = require('./routes')
-const { PageLabels, Debugging } = require('./consts')
+const { PageLabels, Debugging, StorageKeys } = require('./consts')
 const { generateRand } = require('./utils')
-const { utils } = Apify
-
 const { utils: { log } } = Apify
 
 Apify.main(async () => {
@@ -17,26 +14,32 @@ Apify.main(async () => {
     const requestList = await Apify.openRequestList('search-product-url', [{ url: mainPageUrl }])
     const requestQueue = await Apify.openRequestQueue()
     let proxyConfiguration
-    // Use Proxies on the Apify platform only
     if (Apify.isAtHome()) {
-        proxyConfiguration = await Apify.createProxyConfiguration()
+        proxyConfiguration = await Apify.createProxyConfiguration({ groups: ['BUYPROXIES94952']})
     }
 
     const crawler = new Apify.PuppeteerCrawler({
         proxyConfiguration,
         requestList,
         requestQueue,
-        maxConcurrency: 10,
+        maxConcurrency: 1,
         useSessionPool: true,
-        persistCookiesPerSession: true,
         launchPuppeteerOptions: {
             useChrome: true,
             stealth: true,
         },
         handlePageFunction: async (context) => {
             const { url, userData: { label } } = context.request
+            const { page, session } = context
             log.info('Page opened.', { label, url })
-            // Generate random number to wait. Try to be less detectable as bot
+
+            const title = await page.title();
+            // meaning we got into captcha, blocked Or we made more then 5 requests with this session.
+            if (title === 'Sorry! something went wrong!' || title.includes('validate') || title.includes('block') || session.usageCount >= 5) {
+                log.info('Killing session')
+                session.retire()
+            }
+
             switch (label) {
                 case PageLabels.DETAILS:
                     return handleProductDetailsPage(context, requestQueue)
@@ -48,15 +51,24 @@ Apify.main(async () => {
         },
     })
 
+    // Log the current state every 20 seconds
+    setInterval(async () => {
+        const store = await Apify.openKeyValueStore();
+        const state = await store.getValue(StorageKeys.STATE)
+        log.info('Current state:')
+        console.log(state)
+    }, 20000)
+
+
     log.info('Starting the crawl.')
     await crawler.run()
-    const dataset = await Apify.openDataset()
-    const dataUrl = `https://api.apify.com/v2/datasets/${dataset.datasetId}/items?clean=true&format=html`
     log.info('Crawl finished.')
     console.timeEnd(Debugging.TIME)
 
 
     /* Tutorial part 1 */
+    // const dataset = await Apify.openDataset()
+    // const dataUrl = `https://api.apify.com/v2/datasets/${dataset.datasetId}/items?clean=true&format=html`
     // let emailTo = 'roncho1794@gmail.com'
     // if (Apify.isAtHome()) {
     //     emailTo = 'lukas@apify.com'

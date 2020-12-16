@@ -1,6 +1,6 @@
 const Apify = require('apify')
 const { utils: { log } } = Apify
-const { PageLabels } = require('./consts')
+const { PageLabels, StorageKeys } = require('./consts')
 
 /*
  The main page function will be responsible to collect all the product's ASIN from the main page
@@ -27,7 +27,6 @@ exports.handleMainPage = async ({ request, page }, requestQueue) => {
         }
         // Feed the requestQueue with each product detail page
         await requestQueue.addRequest(requestOptions)
-        break // <-- TODO remove this, use for debug
     }
     log.info(`Main Page Done, Enqueued ${productsAsin.length} products`)
 }
@@ -58,6 +57,7 @@ exports.handleProductDetailsPage = async ({ request, page }, requestQueue) => {
  Handled each product offer page to extract the relevant data
 */
 exports.handleProductsOffersPage = async ({ request, page }, keyword) => {
+
     const productOffers = await page.$$eval('.olpOffer', offers => {
         const offersData = []
         offers.forEach(offer => {
@@ -80,6 +80,14 @@ exports.handleProductsOffersPage = async ({ request, page }, keyword) => {
         })
         return offersData
     })
+
+
+    // Renew the data on the key value store.
+    const store = await Apify.openKeyValueStore();
+    let previousState = await store.getValue(StorageKeys.STATE)
+    previousState = previousState || {}
+    const newState = { ...previousState, [request.userData.asin]: productOffers.length }
+    await store.setValue(StorageKeys.STATE, newState);
 
     const finalData = productOffers.map( offer => {
         return {

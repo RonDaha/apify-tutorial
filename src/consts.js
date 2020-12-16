@@ -4,6 +4,10 @@ exports.PageLabels = {
     OFFERS: 'offers',
 }
 
+exports.StorageKeys = {
+    STATE: 'offers-by-asin'
+}
+
 exports.Debugging = {
     TIME: 'ProcessTimeIndicator'
 }

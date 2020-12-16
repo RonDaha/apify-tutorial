@@ -145,5 +145,5 @@
     A named key-value will be use I case I want to save data for a long period of time, and also for easier tracking on the Apify platform UI
 
 - Elaborate if you can ensure this object will stay 100% accurate, which means it will reflect the data in the dataset. Is this possible? If so, how?
-  - Their are a kind of race condition when we try to log the key value data every 20 seconds, at the moment we are logging it there is maybe new record that being inserting at the moment. We could use the promise the `setValue` method return and save it 
+  - There are a kind of race condition when we try to log the key value data every 20 seconds, at the moment we are logging it there is maybe new record that being inserting at the moment. We could use the promise the `setValue` method return and save it 
   in accessible variable within the setInterval function. Then we can just await for it to finish before getting the value we want to log. 
